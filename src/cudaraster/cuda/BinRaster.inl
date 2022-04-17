@@ -80,6 +80,7 @@ __device__ __inline__ void binRasterImpl(void)
 		int	bufCount = 0;
 		int batchEnd = ::min(batchPos + c_crParams.binBatchSize, c_crParams.numTris);
 
+        
 		// loop over batch as long as we have triangles in it
 		do
 		{
@@ -98,11 +99,11 @@ __device__ __inline__ void binRasterImpl(void)
 
 				CR_TIMER_IN(BinCompactSubtri);
 				// cumulative sum of subtriangles within each warp
-                U32 myIdx = __popc(__ballot(num & 1) & getLaneMaskLt());
+                U32 myIdx = __popc(__ballot(num & 1) & getLaneMaskGt());
                 if (__any(num > 1))
                 {
-                    myIdx += __popc(__ballot(num & 2) & getLaneMaskLt()) * 2;
-                    myIdx += __popc(__ballot(num & 4) & getLaneMaskLt()) * 4;
+                    myIdx += __popc(__ballot(num & 2) & getLaneMaskGt()) * 2;
+                    myIdx += __popc(__ballot(num & 4) & getLaneMaskGt()) * 4;
                 }
                 s_broadcast[threadIdx.y + 16] = myIdx + num;
 				__syncthreads();
@@ -328,7 +329,7 @@ __device__ __inline__ void binRasterImpl(void)
 				if (((ofs - 1) >> CR_BIN_SEG_LOG2) != (((ofs - 1) + total) >> CR_BIN_SEG_LOG2))
                 {
                     U32 mask = __ballot(true);
-                    overIndex = __popc(mask & getLaneMaskLt());
+                    overIndex = __popc(mask & getLaneMaskGt());
                     if (overIndex == 0)
                         s_broadcast[threadIdx.y + 16] = atomicAdd((U32*)&s_overTotal, __popc(mask));
                     overIndex += s_broadcast[threadIdx.y + 16];
@@ -392,7 +393,7 @@ __device__ __inline__ void binRasterImpl(void)
 					U32 outMask = s_outMask[threadIdx.y][currBin];
 					if (outMask & (1<<threadIdx.x))
 					{
-						int idx = __popc(outMask & getLaneMaskLt());
+						int idx = __popc(outMask & getLaneMaskGt());
 						if (threadIdx.y > 0)
 							idx += s_outCount[threadIdx.y-1][currBin];
 
